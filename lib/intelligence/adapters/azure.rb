@@ -3,11 +3,10 @@ require_relative 'generic'
 module Intelligence
   module Azure
     class Adapter < Generic::Adapter
-      CHAT_COMPLETIONS_PATH = 'chat/completions'
-
       schema do
         # normalized properties, used by all endpoints
-        base_uri String, required: true
+        base_uri String
+        endpoint String
         key String
         api_version String, required: true, default: '2025-01-01-preview'
 
@@ -56,31 +55,28 @@ module Intelligence
 
       def chat_request_uri(options = nil)
         options = merge_options(@options, build_options(options))
-        base_uri = options[:base_uri]
-        raise 'The Azure adapter requires a base_uri.' unless base_uri
+        base_uri = options[:base_uri] || options[:endpoint]
+        api_version = options[:api_version]
 
-        # because URI join is dumb
-        base_uri = (base_uri.end_with?('/') ? base_uri : base_uri + '/')
-        uri = URI.join(base_uri, CHAT_COMPLETIONS_PATH)
+        raise ArgumentError, 'An Azure base_uri is required to build an Azure chat request.' if base_uri.nil?
 
-        api_version = options[:api_version] || options['api-version']
-        uri.query = [uri.query, "api-version=#{api_version}"].compact.join('&')
+        # Remove trailing slash if present
+        base_uri = base_uri.chomp('/')
 
-        uri
+        # New format: /api/v1/chat/completions
+        "#{base_uri}/api/v1/chat/completions?api-version=#{api_version}"
       end
 
       def chat_request_headers(options = {})
         options = merge_options(@options, build_options(options))
-        result = {}
-
         key = options[:key]
 
-        raise ArgumentError.new('An Azure key is required to build an Azure request.') \
-          if key.nil?
+        raise ArgumentError, 'An Azure key is required to build an Azure request.' if key.nil?
 
-        result['Content-Type'] = 'application/json'
-        result['api-key'] = key
-        result
+        {
+          'Content-Type' => 'application/json',
+          'Authorization' => "Bearer #{key}"
+        }
       end
     end
   end
