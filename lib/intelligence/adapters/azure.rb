@@ -81,22 +81,34 @@ module Intelligence
 
       def chat_request_body(conversation, options = nil)
         tools = options&.delete(:tools) || []
-        options = merge_options(@options, build_options(options))
 
+        # Preserve original tool_choice before schema processing transforms it
+        original_tool_choice = options&.dig(:chat_options, :tool_choice)
+
+        options = merge_options(@options, build_options(options))
         chat_options = options[:chat_options]&.dup || {}
 
-        # Transform tool_choice from schema format to API format
-        if chat_options[:tool_choice].is_a?(Hash)
-          tool_choice = chat_options[:tool_choice]
-          if tool_choice[:function] && tool_choice[:function][:name]
-            # Convert to function-specific format: {"type": "function", "function": {"name": "..."}}
+        # Transform tool_choice to API format
+        # Azure expects either a string ("auto", "none", "required") or
+        # an object {"type": "function", "function": {"name": "..."}}
+        tool_choice = original_tool_choice || chat_options[:tool_choice]
+
+        if tool_choice.is_a?(String) || tool_choice.is_a?(Symbol)
+          chat_options[:tool_choice] = tool_choice.to_s
+        elsif tool_choice.is_a?(Hash)
+          function_name = tool_choice.dig(:function, :name)
+          if function_name && !function_name.to_s.empty?
+            # Specific function call
             chat_options[:tool_choice] = {
               type: 'function',
-              function: { name: tool_choice[:function][:name].to_s }
+              function: { name: function_name.to_s }
             }
+          elsif tool_choice[:type]
+            # Simple string: "auto", "none", "required"
+            chat_options[:tool_choice] = tool_choice[:type].to_s
           else
-            # Convert to simple string: "auto", "none", "required"
-            chat_options[:tool_choice] = tool_choice[:type]&.to_s
+            # Remove invalid tool_choice
+            chat_options.delete(:tool_choice)
           end
         end
 
