@@ -78,6 +78,30 @@ module Intelligence
           'Authorization' => "Bearer #{key}"
         }
       end
+
+      def chat_request_body(conversation, options = nil)
+        tools = options&.delete(:tools) || []
+        options = merge_options(@options, build_options(options))
+
+        chat_options = options[:chat_options]&.dup || {}
+
+        # Transform tool_choice from schema format to API format
+        if chat_options[:tool_choice].is_a?(Hash)
+          tool_choice = chat_options[:tool_choice]
+          if tool_choice[:function] && tool_choice[:function][:name]
+            # Convert to function-specific format: {"type": "function", "function": {"name": "..."}}
+            chat_options[:tool_choice] = {
+              type: 'function',
+              function: { name: tool_choice[:function][:name].to_s }
+            }
+          else
+            # Convert to simple string: "auto", "none", "required"
+            chat_options[:tool_choice] = tool_choice[:type]&.to_s
+          end
+        end
+
+        super(conversation, { tools: tools }.merge(options.merge(chat_options: chat_options)))
+      end
     end
   end
 end
