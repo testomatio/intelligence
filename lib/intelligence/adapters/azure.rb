@@ -33,21 +33,7 @@ module Intelligence
 
           # tools
           tool                      array: true, as: :tools, &Tool.schema
-          # tool choice configuration
-          #
-          # `tool_choice :none`
-          # or
-          # ```
-          # tool_choice :function do
-          #   function :my_function
-          # end
-          # ```
-          tool_choice               arguments: :type do
-            type                    Symbol, in: %i[none auto required]
-            function                arguments: :name do
-              name                  Symbol
-            end
-          end
+          tool_choice               String
           # the parallel_tool_calls parameter is only allowed when 'tools' are specified
           parallel_tool_calls [TrueClass, FalseClass]
         end
@@ -79,41 +65,6 @@ module Intelligence
         }
       end
 
-      def chat_request_body(conversation, options = nil)
-        tools = options&.delete(:tools) || []
-
-        # Preserve original tool_choice before schema processing transforms it
-        original_tool_choice = options&.dig(:chat_options, :tool_choice)
-
-        options = merge_options(@options, build_options(options))
-        chat_options = options[:chat_options]&.dup || {}
-
-        # Transform tool_choice to API format
-        # Azure expects either a string ("auto", "none", "required") or
-        # an object {"type": "function", "function": {"name": "..."}}
-        tool_choice = original_tool_choice || chat_options[:tool_choice]
-
-        if tool_choice.is_a?(String) || tool_choice.is_a?(Symbol)
-          chat_options[:tool_choice] = tool_choice.to_s
-        elsif tool_choice.is_a?(Hash)
-          function_name = tool_choice.dig(:function, :name)
-          if function_name && !function_name.to_s.empty?
-            # Specific function call
-            chat_options[:tool_choice] = {
-              type: 'function',
-              function: { name: function_name.to_s }
-            }
-          elsif tool_choice[:type]
-            # Simple string: "auto", "none", "required"
-            chat_options[:tool_choice] = tool_choice[:type].to_s
-          else
-            # Remove invalid tool_choice
-            chat_options.delete(:tool_choice)
-          end
-        end
-
-        super(conversation, { tools: tools }.merge(options.merge(chat_options: chat_options)))
-      end
     end
   end
 end
