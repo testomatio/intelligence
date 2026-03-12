@@ -66,12 +66,14 @@ module Intelligence
           #   function :my_function 
           # end  
           # ```
-          tool_choice               arguments: :type do 
-            type                    Symbol, in: [ :none, :auto, :required ]
-            function                arguments: :name do 
-              name                  Symbol 
-            end 
-          end 
+          tool_choice               arguments: :type do
+            type                    Symbol, in: [ :none, :auto, :required, :function, :allowed_tools ]
+            function                arguments: :name do
+              name                  String
+            end
+            mode                    Symbol, in: [ :auto, :required ]
+            tools                   array: true
+          end
           # the parallel_tool_calls parameter is only allowed when 'tools' are specified
           parallel_tool_calls       [ TrueClass, FalseClass ]
 

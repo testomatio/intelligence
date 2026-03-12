@@ -116,7 +116,17 @@ module Intelligence
           ( result[ :tools ] || [] ).concat( tools ) 
         )
         result[ :tools ] = tools_attributes if tools_attributes && tools_attributes.length > 0
-        
+
+        # the chat completions api expects tool_choice to be a simple string for values
+        # like 'auto', 'none', and 'required' rather than an object with a type field
+        if result[ :tool_choice ].is_a?( Hash )
+          tool_choice_type = result[ :tool_choice ][ :type ]&.to_s
+          if %w[ auto none required ].include?( tool_choice_type ) &&
+             !result[ :tool_choice ].key?( :function ) && !result[ :tool_choice ].key?( :tools )
+            result[ :tool_choice ] = tool_choice_type
+          end
+        end
+
         JSON.generate( result )
       end 
 
