@@ -64,12 +64,12 @@ module Intelligence
 
           max_tool_calls            Integer, in: (1..)
           parallel_tool_calls       [ TrueClass, FalseClass ]
-          tool_choice               arguments: :type do 
-            type                    Symbol, in: [ :none, :auto, :required ]
-            function                arguments: :name do 
-              name                  Symbol 
-            end 
-          end 
+          tool_choice               arguments: :type do
+            type                    Symbol, in: [ :none, :auto, :required, :function, :allowed_tools ]
+            name                    String
+            mode                    Symbol, in: [ :auto, :required ]
+            tools                   array: true
+          end
           tool                      array: true, as: :tools, &Tool.schema 
 
           # build in open ai tools

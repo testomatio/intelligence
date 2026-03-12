@@ -180,6 +180,17 @@ module Intelligence
 
         result[ :tools ] = tools_attributes if tools_attributes && tools_attributes.length > 0
 
+        # the responses api expects tool_choice to be a simple string for values like
+        # 'auto', 'none', and 'required'; for forced function calls it expects a flat
+        # object { type: 'function', name: '...' }
+        if result[ :tool_choice ].is_a?( Hash )
+          tool_choice_type = result[ :tool_choice ][ :type ]&.to_s
+          if %w[ auto none required ].include?( tool_choice_type ) &&
+             !result[ :tool_choice ].key?( :name ) && !result[ :tool_choice ].key?( :tools )
+            result[ :tool_choice ] = tool_choice_type
+          end
+        end
+
         JSON.generate( result )
       end 
 
