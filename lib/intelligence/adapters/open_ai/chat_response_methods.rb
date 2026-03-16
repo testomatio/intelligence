@@ -24,15 +24,13 @@ module Intelligence
                 }
               end
             end
-            if encrypted_content = json_payload[ :encrypted_content ]
-              # The Open AI response API insists on this item being identical to the sent 
-              # item so we encode the entire item ( including the actual cipher ) and then 
-              # decode back to JSON when sending. 
-              result_message[ :contents ] << { 
-                type:               :cipher_thought, 
-                :'open_ai/item' =>  json_payload.to_json 
-              }
-            end
+            # The Open AI responses API requires reasoning items to be sent back in the
+            # input when there is an associated function_call, so we always encode the
+            # entire item for round-tripping.
+            result_message[ :contents ] << {
+              type:               :cipher_thought,
+              :'open_ai/item' =>  json_payload.to_json
+            }
           when 'message'
             json_payload[ :content ]&.each do | json_content |
               case json_content[ :type ]
@@ -260,20 +258,17 @@ module Intelligence
                     end
                   end
                 end
-              # cipher thought
+              # cipher thought - always round-trip reasoning items so associated
+              # function_call items have their required reasoning reference
               when 'reasoning'
                 response_item_id = response_item[ :id ]
-                response_item_encrypted_content = response_item[ :encrypted_content ]
-                if response_item_encrypted_content && response_item_encrypted_content.length > 0
-                  content = { 
-                    :'open_ai/cid' => "cipher_thought/#{response_item_id}/0",
-
-                    type:             :cipher_thought, 
-                    :'open_ai/id'  => response_item_id,
-                    :'open_ai/item'=> response_item.to_json
-                  }
-                  content_present = true
-                end
+                content = {
+                  :'open_ai/cid' => "cipher_thought/#{response_item_id}/0",
+                  type:             :cipher_thought,
+                  :'open_ai/id'  => response_item_id,
+                  :'open_ai/item'=> response_item.to_json
+                }
+                content_present = true
               # web search complete
               when 'web_search_call'
                 raise 'A web search call completed but there is web search call content.' \
