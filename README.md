@@ -570,6 +570,20 @@ ollama = Intelligence::Adapter.build! :ollama do
   end
 end
 
+# Amazon Bedrock uses bearer-token auth (issue a key from the Bedrock console,
+# or set AWS_BEARER_TOKEN_BEDROCK). The region determines the endpoint.
+bedrock = Intelligence::Adapter.build! :bedrock do
+  key    ENV['AWS_BEARER_TOKEN_BEDROCK']
+  region ENV.fetch('AWS_REGION', 'us-east-1')
+  chat_options do
+    model      'anthropic.claude-3-5-sonnet-20241022-v2:0'
+    max_tokens 256
+    # reasoning is forwarded to additionalModelRequestFields.reasoning_config
+    # for anthropic models on bedrock; other families use
+    # additional_model_request_fields directly
+  end
+end
+
 # Use the same conversation with different providers
 conversation = Intelligence::Conversation.build do
   system_message do
