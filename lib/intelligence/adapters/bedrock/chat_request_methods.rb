@@ -30,7 +30,7 @@ module Intelligence
         raise ArgumentError, 'A :model is required in chat_options for a Bedrock chat request.' \
           if model.nil? || model.empty?
 
-        base_uri = options[ :base_uri ]
+        base_uri = options[ :endpoint ] || options[ :base_uri ]
         if base_uri.nil? || base_uri.empty?
           raise ArgumentError, 'A :region (or AWS_REGION / AWS_DEFAULT_REGION env) is required ' \
                                'for a Bedrock chat request.' if region.nil? || region.empty?

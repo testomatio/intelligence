@@ -17,8 +17,10 @@ module Intelligence
         region              String
 
         # optional override of the endpoint root; when set the adapter will not inject a region
-        # into the host. useful for vpc endpoints and custom bedrock-compatible services
+        # into the host. useful for vpc endpoints and custom bedrock-compatible services.
+        # :endpoint is supported as an alias for consistency with the azure and ollama adapters.
         base_uri            String
+        endpoint            String
 
         chat_options do
 
