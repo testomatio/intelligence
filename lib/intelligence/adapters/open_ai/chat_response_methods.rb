@@ -79,11 +79,21 @@ module Intelligence
         end 
         result[ :choices ].push( { end_reason: end_reason, message: result_message } )
 
+        # detect responses that are incomplete due to token limit with no meaningful
+        # content ( only reasoning, no text or tool calls ); return nil so the caller
+        # can treat this as an error
+        if end_reason == :token_limit_exceeded
+          has_content = result_message[ :contents ].any? do | content |
+            [ :text, :tool_call ].include?( content[ :type ] )
+          end
+          return nil unless has_content
+        end
+
         metrics_json = response_json[ :usage ]
         unless metrics_json.nil?
 
           metrics = {}
-          metrics[ :input_tokens ] = metrics_json[ :input_tokens ] 
+          metrics[ :input_tokens ] = metrics_json[ :input_tokens ]
           metrics[ :output_tokens ] = metrics_json[ :output_tokens ]
           metrics = metrics.compact
 
@@ -314,7 +324,19 @@ module Intelligence
       end
 
       def stream_result_attributes( context )
-        { choices: purge_choices!( context[ :choices ] ), metrics: context[ :metrics ] }
+        choices = purge_choices!( context[ :choices ] )
+
+        # detect responses that are incomplete due to token limit with no meaningful
+        # content ( only reasoning, no text or tool calls ); return nil so the caller
+        # can treat this as an error
+        choice = choices&.first
+        if choice && choice[ :end_reason ] == :token_limit_exceeded
+          contents = choice.dig( :message, :contents ) || []
+          has_content = contents.any? { | c | [ :text, :tool_call ].include?( c[ :type ] ) }
+          return nil unless has_content
+        end
+
+        { choices: choices, metrics: context[ :metrics ] }
       end
 
       alias_method :stream_result_error_attributes, :chat_result_error_attributes

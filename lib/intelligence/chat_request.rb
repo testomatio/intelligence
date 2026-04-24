@@ -104,17 +104,26 @@ module Intelligence
 
       result = nil 
 
-      if response.success?  
+      if response.success?
         chat_result_attributes = @adapter.chat_result_attributes( response )
-        result = ChatResult.new( chat_result_attributes )
-      else 
+        if chat_result_attributes
+          result = ChatResult.new( chat_result_attributes )
+        else
+          result = ChatErrorResult.new(
+            error_type: 'token_limit_exceeded',
+            error: 'token_limit_exceeded',
+            error_description:
+              'The response exceeded the max_output_tokens limit and generated no content.'
+          )
+        end
+      else
         error_result_attributes = @adapter.chat_result_error_attributes( response )
         result = ChatErrorResult.new( error_result_attributes )
       end
-      
+
       response.instance_variable_set( "@_intelligence_result", result )
-      response.extend( ChatResponseMethods ) 
-    
+      response.extend( ChatResponseMethods )
+
     end
 
     def stream( conversation, *options )
@@ -147,11 +156,20 @@ module Intelligence
 
       end
 
-      result = nil 
-      if response.success?  
+      result = nil
+      if response.success?
         stream_result_attributes = @adapter.stream_result_attributes( context )
-        result = ChatResult.new( stream_result_attributes )
-      else 
+        if stream_result_attributes
+          result = ChatResult.new( stream_result_attributes )
+        else
+          result = ChatErrorResult.new(
+            error_type: 'token_limit_exceeded',
+            error: 'token_limit_exceeded',
+            error_description:
+              'The response exceeded the max_output_tokens limit and generated no content.'
+          )
+        end
+      else
         error_result_attributes = @adapter.stream_result_error_attributes( response )
         result = ChatErrorResult.new( error_result_attributes )
       end
