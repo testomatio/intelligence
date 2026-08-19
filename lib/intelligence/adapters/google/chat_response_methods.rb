@@ -177,7 +177,7 @@ module Intelligence
 
               if ( data_candidate_finish_reason && data_candidate_finish_reason.length > 1 )
                 end_reason = translate_finish_reason( data_candidate_finish_reason )
-                if end_reason == :ended && contents.any? { it&.dig( :type ) == :tool_call }
+                if end_reason == :ended && contents.any? { | content | content&.dig( :type ) == :tool_call }
                   end_reason = :tool_called
                 end
                 choices_delta[ data_candidate_index ][ :end_reason ] = end_reason
